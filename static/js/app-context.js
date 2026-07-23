@@ -267,6 +267,53 @@ export function createAppContext() {
         setStatus(`重载完成${suffix}`, result.restart_required ? "bad" : "good");
     }
 
+    async function reloadPluginsFromSource() {
+        setStatus("正在从源码重新加载插件...");
+        const result = await api.reloadPluginsFromSource();
+        applyPluginMutationResult(result);
+        const suffix = result.restart_required ? `，需要重启字段：${result.restart_required_fields.join(", ")}` : "";
+        setStatus(`插件已从源码重新加载${suffix}`, result.restart_required ? "bad" : "good");
+    }
+
+    async function restartSystem() {
+        setStatus("服务正在重启，请稍候...");
+        await api.restartSystem();
+        let attempts = 0;
+        const maxAttempts = 30;
+        const poll = async () => {
+            attempts += 1;
+            try {
+                const response = await fetch("/health", { cache: "no-store" });
+                if (response.ok) {
+                    setStatus("服务已重启完成，正在刷新页面...", "good");
+                    await waitForDuration(800);
+                    window.location.reload();
+                    return;
+                }
+            } catch (error) {
+                // 服务还未恢复，继续等待
+            }
+            if (attempts >= maxAttempts) {
+                setStatus("服务重启超时，请手动刷新页面", "bad");
+                return;
+            }
+            setStatus(`服务正在重启...（${attempts}/${maxAttempts}）`);
+            await waitForDuration(1000);
+            poll();
+        };
+        await waitForDuration(2000);
+        poll();
+    }
+
+    async function restartRobot() {
+        setStatus("正在重启机器人...");
+        const result = await api.restartRobot();
+        const killedInfo = Array.isArray(result.killed_pids) && result.killed_pids.length
+            ? `，已终止旧进程: ${result.killed_pids.join(", ")}`
+            : "";
+        setStatus(`机器人已重启${killedInfo}`, "good");
+    }
+
     function switchTab(tabName) {
         state.activeTab = tabName;
         ensurePanelLoaded(tabName, elements)
@@ -338,6 +385,9 @@ export function createAppContext() {
         setStoredApiToken,
         switchTab,
         reloadFromConfig,
+        reloadPluginsFromSource,
+        restartSystem,
+        restartRobot,
         updateHeaderForTab,
         syncMessageTypeLabels,
         applyPluginMutationResult,

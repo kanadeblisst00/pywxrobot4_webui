@@ -1650,6 +1650,10 @@ optgroup {
     display: grid;
     gap: 10px;
     min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 460px;
+    overflow-y: auto;
 }
 
 .config-object-table-header,
@@ -1657,11 +1661,15 @@ optgroup {
     display: grid;
     gap: 12px;
     align-items: center;
-    min-width: 0;
+    width: fit-content;
+    min-width: 100%;
 }
 
 .config-object-table-header {
-    padding: 0 14px;
+    padding: 12px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 3;
 }
 
 .config-object-table-heading {
@@ -1673,7 +1681,15 @@ optgroup {
 }
 
 .config-object-table-heading.is-actions {
-    justify-self: end;
+    justify-self: stretch;
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    padding-left: 14px;
+    padding-right: 14px;
+    margin-right: -14px;
+    text-align: center;
+    background: #0E1621;
 }
 
 .config-object-table-row {
@@ -1681,6 +1697,22 @@ optgroup {
     border-radius: 14px;
     border: 1px solid rgba(145, 189, 232, 0.12);
     background: rgba(3, 10, 18, 0.72);
+    position: relative;
+}
+
+.config-object-table-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(3, 10, 18, 0.72);
+    border-radius: 14px;
+    border: 1px solid rgba(145, 189, 232, 0.12);
+    width: max-content;
+    min-width: 100%;
+    z-index: -1;
 }
 
 .config-object-table-row.is-editing {
@@ -1753,9 +1785,26 @@ optgroup {
     min-height: 20px;
     color: var(--text);
     line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-word;
+    position: relative;
+    cursor: pointer;
+}
+
+.config-object-table-value:hover {
+    display: block;
+    overflow: visible;
+    text-overflow: clip;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 6px;
+    padding: 8px;
+    z-index: 10;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
 .config-object-table-actions {
@@ -1764,6 +1813,15 @@ optgroup {
     justify-content: flex-end;
     flex-wrap: wrap;
     align-items: center;
+    position: sticky;
+    right: 0;
+    z-index: 2;
+    padding-left: 14px;
+    padding-right: 14px;
+    margin-right: -14px;
+    background: #060D15;
+    padding-top: 8px; 
+    padding-bottom: 8px
 }
 
 .config-object-table-row.is-editing .config-object-table-actions {
@@ -1771,6 +1829,11 @@ optgroup {
     justify-content: flex-end;
     padding-top: 4px;
     border-top: 1px solid rgba(145, 189, 232, 0.1);
+    position: static;
+    background: transparent;
+    padding-left: 0;
+    padding-right: 0;
+    margin-right: 0;
 }
 
 .config-object-table-error {
@@ -2046,6 +2109,109 @@ optgroup {
     margin: 0;
 }
 
+/* ===== 本地目录选择对话框 ===== */
+
+.textarea-with-pickers {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.textarea-picker-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.textarea-picker-button {
+    flex-shrink: 0;
+}
+
+.folder-picker-backdrop {
+    z-index: 100;
+}
+
+.folder-picker-card {
+    width: min(720px, 100%);
+}
+
+.folder-picker-toolbar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.folder-picker-path-input {
+    margin: 0;
+    min-width: 0;
+}
+
+.folder-picker-current {
+    font-size: 13px;
+    color: var(--muted-color, #8a94a6);
+    word-break: break-all;
+    padding: 6px 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+}
+
+.folder-picker-list {
+    min-height: 240px;
+    max-height: 360px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+.folder-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.folder-picker-item:hover,
+.folder-picker-item:focus-visible {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.folder-picker-item-icon {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.folder-picker-item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folder-picker-empty {
+    padding: 24px 12px;
+    text-align: center;
+    color: var(--muted-color, #8a94a6);
+    font-size: 13px;
+}
+
+.folder-picker-empty.is-error {
+    color: #ff6b6b;
+}
+
 .config-searchable-select-input {
     padding-right: 52px;
 }
@@ -2239,6 +2405,36 @@ optgroup {
 
 .field-span-2 {
     grid-column: span 2;
+}
+
+.file-input-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.radio-group {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    min-height: 48px;
+}
+
+.radio-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted-strong);
+}
+
+.radio-item input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    cursor: pointer;
 }
 
 .toggle-field {

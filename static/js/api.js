@@ -179,6 +179,15 @@ export const api = {
     reloadPlugins() {
         return requestJson("/api/plugins/reload", { method: "POST" });
     },
+    reloadPluginsFromSource() {
+        return requestJson("/api/plugins/reload-source", { method: "POST" });
+    },
+    restartSystem() {
+        return requestJson("/api/system/restart", { method: "POST" });
+    },
+    restartRobot() {
+        return requestJson("/api/robot/restart", { method: "POST" });
+    },
     togglePlugin(moduleName, enabled) {
         return requestJson(`/api/plugins/${encodeURIComponent(moduleName)}/toggle`, {
             method: "POST",
@@ -198,6 +207,14 @@ export const api = {
         formData.append("upload_dir", uploadDir || "uploads");
         formData.append("file", file);
         return requestForm("/api/plugin-assets/upload", formData, { method: "POST" });
+    },
+    browseFolders(path = "") {
+        const params = new URLSearchParams();
+        if (path) {
+            params.set("path", path);
+        }
+        const query = params.toString();
+        return requestJson(`/api/folders/browse${query ? `?${query}` : ""}`);
     },
     executePlugin(moduleName, config = {}) {
         return requestJson(`/api/plugins/${encodeURIComponent(moduleName)}/execute`, {
