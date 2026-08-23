@@ -21,17 +21,8 @@ DIST_DIR = OUT_DIR / f"{APP_NAME}.dist"
 MAIN_DIST = OUT_DIR / "main.dist"
 BUILD_VENV = ROOT / ".venv-build"
 
-# Runtime-only deps (pytest is deliberately omitted from the build env).
-RUNTIME_REQUIREMENTS = (
-    "fastapi>=0.115.0,<1.0",
-    "uvicorn>=0.30.0,<1.0",
-    "loguru>=0.7.0,<1.0",
-    "pydantic>=2.7.0,<3.0",
-    "python-multipart>=0.0.9,<1.0",
-    "httpx>=0.27.0,<1.0",
-    "numpy>=1.26.0,<3.0",
-    "Pillow>=10.0.0,<12.0",
-    "zxing-cpp>=2.2.0,<3.0",
+# Runtime dependencies come from requirements.txt; keep only build tools here.
+BUILD_REQUIREMENTS = (
     "nuitka",
     "ordered-set",
     "zstandard",
@@ -85,7 +76,7 @@ def build_frontend() -> None:
     print("\n===== [1/4] Build frontend =====", flush=True)
     which_or_exit("npm", "Install Node.js and ensure npm is on PATH.")
     if not (ROOT / "node_modules").exists():
-        run(["npm", "install"])
+        run(["npm", "ci"])
     run(["npm", "run", "build"])
     if not (ROOT / "static" / "dist").is_dir():
         raise SystemExit("[ERROR] static/dist missing after Vite build.")
@@ -94,7 +85,16 @@ def build_frontend() -> None:
 def install_python_deps(py: Path) -> None:
     print("\n===== [2/4] Install runtime deps into build venv =====", flush=True)
     run([str(py), "-m", "pip", "install", "-U", "pip", "setuptools", "wheel"])
-    run([str(py), "-m", "pip", "install", "-U", *RUNTIME_REQUIREMENTS])
+    run([
+        str(py),
+        "-m",
+        "pip",
+        "install",
+        "-U",
+        "-r",
+        str(ROOT / "requirements.txt"),
+        *BUILD_REQUIREMENTS,
+    ])
 
 
 def compile_with_nuitka(py: Path) -> None:

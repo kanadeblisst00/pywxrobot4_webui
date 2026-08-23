@@ -9,17 +9,10 @@ wxrobot_webui 不是 pywxrobot4 本体，而是运行在其旁边的一层 Web U
 
 ## 2. 运行前提
 
-建议准备一个独立的 Python 环境，并确保以下依赖可用：
-
-- FastAPI
-- uvicorn
-- loguru
-- pydantic
-
-如果当前环境还没有这些依赖，可以按需安装：
+建议准备一个独立的 Python 环境，并安装项目声明的完整运行依赖：
 
 ```powershell
-pip install fastapi uvicorn loguru pydantic
+pip install -r requirements.txt
 ```
 
 如果你同时会使用 AI 相关能力，还需要保证对应模型厂商的 API Key 已准备好。

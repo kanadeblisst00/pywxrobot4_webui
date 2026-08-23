@@ -185,6 +185,12 @@ message_summary = True   # 消息汇总类插件的配置渲染特判
 
 ## 8. 验证建议
 
+运行测试前，先安装包含 pytest 的开发依赖：
+
+```powershell
+pip install -r requirements-dev.txt
+```
+
 修改插件后，优先做最小验证：
 
 ```powershell
