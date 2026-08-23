@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from collections.abc import AsyncIterator
 from datetime import datetime
 
 from fastapi import FastAPI
@@ -12,25 +13,41 @@ from fastapi.responses import StreamingResponse
 from server.context import AppContext
 
 
+SSE_HEARTBEAT_INTERVAL_SECONDS = 15.0
+SSE_RESPONSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "X-Accel-Buffering": "no",
+}
+
+
+async def generate_runtime_event_stream(event_hub, heartbeat_interval_seconds: float = SSE_HEARTBEAT_INTERVAL_SECONDS) -> AsyncIterator[str]:
+    queue = await event_hub.subscribe()
+    try:
+        connected_event = json.dumps({"type": "connected", "payload": {}}, ensure_ascii=False)
+        yield f"data: {connected_event}\n\n"
+        while True:
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=max(0.1, heartbeat_interval_seconds))
+            except asyncio.TimeoutError:
+                yield ": heartbeat\n\n"
+                continue
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+    except asyncio.CancelledError:
+        raise
+    finally:
+        await event_hub.unsubscribe(queue)
+
+
 def register_observability_routes(app: FastAPI, ctx: AppContext) -> None:
     runtime = ctx.runtime
 
     @app.get("/api/events/stream")
     async def stream_runtime_events() -> StreamingResponse:
-        async def event_generator():
-            queue = await runtime.event_hub.subscribe()
-            try:
-                connected_event = json.dumps({"type": "connected", "payload": {}}, ensure_ascii=False)
-                yield f"data: {connected_event}\n\n"
-                while True:
-                    event = await queue.get()
-                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
-            except asyncio.CancelledError:
-                raise
-            finally:
-                await runtime.event_hub.unsubscribe(queue)
-
-        return StreamingResponse(event_generator(), media_type="text/event-stream")
+        return StreamingResponse(
+            generate_runtime_event_stream(runtime.event_hub),
+            media_type="text/event-stream",
+            headers=SSE_RESPONSE_HEADERS,
+        )
 
     @app.get("/health")
     async def health() -> dict:
