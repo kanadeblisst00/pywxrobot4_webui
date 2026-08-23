@@ -1,8 +1,10 @@
 import sqlite3
+import threading
 from pathlib import Path
 
 from core.db_connection import (
     FLUSH_NOW,
+    flush_all_sqlite_writes,
     get_pending_write_count,
     get_sqlite_connection,
     reset_sqlite_write_state_for_tests,
@@ -159,4 +161,36 @@ def test_plugin_state_store_batches_and_read_flushes(tmp_path) -> None:
     assert store.get("b") == 2
     assert get_pending_write_count(db_path) == 0
     assert _external_count(db_path, "plugin_state") == 2
+    reset_sqlite_write_state_for_tests()
+
+
+def test_sqlite_write_switches_thread_connections_without_losing_pending_write(tmp_path) -> None:
+    reset_sqlite_write_state_for_tests()
+    db_path = tmp_path / "threaded.sqlite3"
+    connection = get_sqlite_connection(db_path)
+    connection.execute("CREATE TABLE items(id INTEGER PRIMARY KEY)")
+    connection.commit()
+    errors: list[BaseException] = []
+
+    def write_in_thread(item_id: int) -> None:
+        try:
+            sqlite_execute_write(
+                db_path,
+                lambda conn: conn.execute("INSERT INTO items(id) VALUES (?)", (item_id,)),
+                flush_every=100,
+            )
+        except BaseException as exc:
+            errors.append(exc)
+
+    first = threading.Thread(target=write_in_thread, args=(1,))
+    second = threading.Thread(target=write_in_thread, args=(2,))
+    first.start()
+    first.join()
+    second.start()
+    second.join()
+
+    assert errors == []
+    flush_all_sqlite_writes()
+    assert _external_count(db_path) == 2
+    assert get_pending_write_count(db_path) == 0
     reset_sqlite_write_state_for_tests()

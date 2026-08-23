@@ -1,6 +1,8 @@
+import asyncio
 import tempfile
 from pathlib import Path
 
+from unittest.mock import AsyncMock, patch
 import core.db_connection as db_connection
 from messaging.repository import MessageRepository
 from manager.plugin_log_repository import PluginLogRepository
@@ -115,3 +117,16 @@ def test_plugin_log_repository_append_and_reload() -> None:
         reloaded = PluginLogRepository(limit=2, db_path=db_path)
         assert [item["internal_id"] for item in reloaded.cached_logs] == [3, 2]
         _clear_connection_cache(db_path)
+
+
+def test_runtime_stop_flushes_pending_database_writes() -> None:
+    from core.config import PluginServiceSettings
+
+    runtime = PluginRuntime(PluginServiceSettings())
+    runtime.manager.shutdown = AsyncMock()
+    runtime.api_client.aclose = AsyncMock()
+    with patch("runtime.engine.flush_all_sqlite_writes") as flush_writes, patch(
+        "runtime.engine.aclose_shared_http_client", new=AsyncMock()
+    ):
+        asyncio.run(runtime.stop())
+    flush_writes.assert_called_once_with()

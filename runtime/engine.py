@@ -12,6 +12,7 @@ from loguru import logger
 
 from core.client import WxRobotApiClient
 from core.config import PluginServiceSettings, normalize_plugin_module_name
+from core.db_connection import flush_all_sqlite_writes
 from runtime.contact_directory_cache import ContactDirectoryCache
 from manager import PluginManager
 from messaging.event import MessageEvent
@@ -515,6 +516,7 @@ class PluginRuntime:
         if self._workers:
             await asyncio.gather(*self._workers, return_exceptions=True)
         await self.manager.shutdown()
+        flush_all_sqlite_writes()
         await self.api_client.aclose()
         await aclose_shared_http_client()
 

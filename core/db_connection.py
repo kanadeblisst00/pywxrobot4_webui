@@ -15,7 +15,7 @@ from typing import Any, Callable, TypeVar
 _thread_state = threading.local()
 _write_locks: dict[str, threading.RLock] = {}
 _write_locks_guard = threading.Lock()
-_pending_writes: dict[str, int] = {}
+_pending_writes: dict[str, tuple[sqlite3.Connection, int]] = {}
 _pending_guard = threading.Lock()
 
 DEFAULT_WRITE_FLUSH_EVERY = 8
@@ -49,15 +49,21 @@ def _write_lock_for(cache_key: str) -> threading.RLock:
 
 def _get_pending(cache_key: str) -> int:
     with _pending_guard:
-        return int(_pending_writes.get(cache_key, 0))
+        state = _pending_writes.get(cache_key)
+        return int(state[1]) if state is not None else 0
 
 
-def _set_pending(cache_key: str, value: int) -> None:
+def _get_pending_state(cache_key: str) -> tuple[sqlite3.Connection, int] | None:
     with _pending_guard:
-        if value <= 0:
+        return _pending_writes.get(cache_key)
+
+
+def _set_pending(cache_key: str, connection: sqlite3.Connection | None, value: int) -> None:
+    with _pending_guard:
+        if connection is None or value <= 0:
             _pending_writes.pop(cache_key, None)
         else:
-            _pending_writes[cache_key] = value
+            _pending_writes[cache_key] = (connection, value)
 
 
 def get_pending_write_count(db_path: str | Path) -> int:
@@ -91,11 +97,20 @@ def flush_sqlite_writes(db_path: str | Path) -> None:
     """将指定库上尚未提交的批量写立刻 commit。"""
     cache_key = _resolve_path(db_path)
     with _write_lock_for(cache_key):
-        if _get_pending(cache_key) <= 0:
+        pending_state = _get_pending_state(cache_key)
+        if pending_state is None:
             return
-        connection = get_sqlite_connection(cache_key)
+        connection, _pending = pending_state
         connection.commit()
-        _set_pending(cache_key, 0)
+        _set_pending(cache_key, None, 0)
+
+
+def flush_all_sqlite_writes() -> None:
+    """提交进程内所有连接上由批量写接口缓冲的事务。"""
+    with _pending_guard:
+        cache_keys = list(_pending_writes)
+    for cache_key in cache_keys:
+        flush_sqlite_writes(cache_key)
 
 
 def sqlite_execute_write(
@@ -113,14 +128,18 @@ def sqlite_execute_write(
     every = max(1, int(flush_every))
     with _write_lock_for(cache_key):
         connection = get_sqlite_connection(cache_key)
+        pending_state = _get_pending_state(cache_key)
+        if pending_state is not None and pending_state[0] is not connection:
+            pending_state[0].commit()
+            _set_pending(cache_key, None, 0)
         result = writer(connection)
         force = immediate or result is FLUSH_NOW
         pending = _get_pending(cache_key) + 1
         if force or pending >= every:
             connection.commit()
-            _set_pending(cache_key, 0)
+            _set_pending(cache_key, None, 0)
         else:
-            _set_pending(cache_key, pending)
+            _set_pending(cache_key, connection, pending)
         if result is FLUSH_NOW:
             return None  # type: ignore[return-value]
         return result
