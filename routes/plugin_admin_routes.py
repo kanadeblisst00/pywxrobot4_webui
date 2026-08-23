@@ -6,9 +6,7 @@ from fastapi import FastAPI, HTTPException
 from loguru import logger
 
 from server.schemas import PluginConfigUpdateRequest, PluginExecuteRequest, PluginToggleRequest
-from core.config import PluginServiceSettings
 from manager import PluginManager
-from runtime.sync import sync_runtime_with_config
 from server.context import AppContext
 
 
@@ -25,45 +23,41 @@ def register_plugin_admin_routes(app: FastAPI, ctx: AppContext) -> None:
 
     @app.post("/api/plugins/reload")
     async def reload_plugins() -> dict:
-        configured_settings = PluginServiceSettings.from_storage()
-        reload_state = await sync_runtime_with_config(ctx.runtime, configured_settings)
-        return ctx.with_mutation_payload(reload_state)
+        return await ctx.sync_configured_settings()
 
     @app.post("/api/plugins/{module_name}/toggle")
     async def toggle_plugin(module_name: str, item: PluginToggleRequest) -> dict:
-        configured_settings = PluginServiceSettings.from_storage()
-        available_modules = set(PluginManager.discover_plugin_modules()) | set(configured_settings.plugins)
-        if module_name not in available_modules:
-            raise HTTPException(status_code=404, detail="未找到指定插件模块")
+        def mutate(configured_settings):
+            available_modules = set(PluginManager.discover_plugin_modules()) | set(configured_settings.plugins)
+            if module_name not in available_modules:
+                raise HTTPException(status_code=404, detail="未找到指定插件模块")
 
-        next_plugins = list(dict.fromkeys(configured_settings.plugins))
-        if item.enabled and module_name not in next_plugins:
-            next_plugins.append(module_name)
-        if not item.enabled:
-            next_plugins = [name for name in next_plugins if name != module_name]
+            next_plugins = list(dict.fromkeys(configured_settings.plugins))
+            if item.enabled and module_name not in next_plugins:
+                next_plugins.append(module_name)
+            if not item.enabled:
+                next_plugins = [name for name in next_plugins if name != module_name]
 
-        next_settings = configured_settings.model_copy(update={"plugins": next_plugins})
-        next_settings.save_to_storage()
-        reload_state = await sync_runtime_with_config(ctx.runtime, next_settings)
-        return ctx.with_mutation_payload(reload_state)
+            return configured_settings.model_copy(update={"plugins": next_plugins})
+
+        return await ctx.apply_config_mutation(mutate)
 
     @app.post("/api/plugins/{module_name}/config")
     async def update_plugin_config(module_name: str, item: PluginConfigUpdateRequest) -> dict:
-        configured_settings = PluginServiceSettings.from_storage()
-        available_modules = set(PluginManager.discover_plugin_modules()) | set(configured_settings.plugins)
-        if module_name not in available_modules:
-            raise HTTPException(status_code=404, detail="未找到指定插件模块")
+        def mutate(configured_settings):
+            available_modules = set(PluginManager.discover_plugin_modules()) | set(configured_settings.plugins)
+            if module_name not in available_modules:
+                raise HTTPException(status_code=404, detail="未找到指定插件模块")
 
-        next_plugin_settings = dict(configured_settings.plugin_settings)
-        if item.config:
-            next_plugin_settings[module_name] = item.config
-        else:
-            next_plugin_settings.pop(module_name, None)
+            next_plugin_settings = dict(configured_settings.plugin_settings)
+            if item.config:
+                next_plugin_settings[module_name] = item.config
+            else:
+                next_plugin_settings.pop(module_name, None)
 
-        next_settings = configured_settings.model_copy(update={"plugin_settings": next_plugin_settings})
-        next_settings.save_to_storage()
-        reload_state = await sync_runtime_with_config(ctx.runtime, next_settings)
-        return ctx.with_mutation_payload(reload_state)
+            return configured_settings.model_copy(update={"plugin_settings": next_plugin_settings})
+
+        return await ctx.apply_config_mutation(mutate)
 
     @app.post("/api/plugins/{module_name}/execute")
     async def execute_plugin(module_name: str, item: PluginExecuteRequest) -> dict:
