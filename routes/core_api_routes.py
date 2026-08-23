@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from pathlib import Path
 
@@ -11,17 +12,20 @@ from loguru import logger
 
 from ai_assistant import load_openai_compatible_model_options
 from server.builders import AppBuilders
-from server.app_config import (
-    PLUGIN_ASSET_IMAGE_EXTENSIONS,
-    PLUGIN_ASSET_MAX_BYTES,
-)
+from server.app_config import PLUGIN_ASSET_MAX_BYTES
 from server.frontend_assets import render_frontend_index_html
 from server.schemas import PluginConfigUpdateRequest
 from core.config import PROJECT_ROOT, normalize_plugin_module_name
 from messaging.event import MessageEvent
 from runtime.engine import RECENT_MESSAGE_LIMIT
 from server.context import AppContext
-from server.upload_paths import resolve_project_relative_dir, sanitize_upload_path_segment
+from server.upload_paths import (
+    PLUGIN_ASSET_IMAGE_EXTENSIONS,
+    read_upload_with_limit,
+    resolve_project_relative_dir,
+    sanitize_upload_path_segment,
+    validate_plugin_asset_image,
+)
 
 
 def register_core_api_routes(app: FastAPI, ctx: AppContext, callback_path: str) -> None:
@@ -127,17 +131,22 @@ def register_core_api_routes(app: FastAPI, ctx: AppContext, callback_path: str) 
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-        content = await file.read()
+        content = await read_upload_with_limit(file, PLUGIN_ASSET_MAX_BYTES)
         if not content:
             raise HTTPException(status_code=400, detail="上传文件为空")
         if len(content) > PLUGIN_ASSET_MAX_BYTES:
             raise HTTPException(status_code=400, detail="图片不能超过 10MB")
 
+        try:
+            validate_plugin_asset_image(content, suffix)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
         target_dir.mkdir(parents=True, exist_ok=True)
         file_stem = sanitize_upload_path_segment(Path(original_file_name).stem, fallback="image")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
         target_path = target_dir / f"{file_stem}_{timestamp}{suffix}"
-        target_path.write_bytes(content)
+        await asyncio.to_thread(target_path.write_bytes, content)
         relative_path = target_path.relative_to(PROJECT_ROOT).as_posix()
 
         return {

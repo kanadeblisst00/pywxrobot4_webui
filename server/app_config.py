@@ -9,9 +9,7 @@ FRONTEND_DIR = PROJECT_ROOT / "frontend"
 FRONTEND_INDEX_PAGE = FRONTEND_DIR / "index.html"
 STATIC_DIR = PROJECT_ROOT / "static"
 LOG_DIR = SETTINGS_DB_PATH.parent / "logs"
-PLUGIN_ASSET_UPLOAD_ROOT = PROJECT_ROOT / "uploads"
 PLUGIN_ASSET_MAX_BYTES = 10 * 1024 * 1024
-PLUGIN_ASSET_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}
 
 RESTART_REQUIRED_FIELDS = {"host", "port", "callback_path", "worker_count", "queue_size"}
 RUNTIME_LIGHT_REFRESH_FIELDS = {
