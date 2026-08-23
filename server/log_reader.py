@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -17,6 +18,9 @@ LOG_TIME_RANGE_TO_DELTA = {
     "6h": timedelta(hours=6),
     "1d": timedelta(days=1),
 }
+LOG_READ_CHUNK_LINES = 4096
+
+
 def format_local_datetime(value: datetime | None) -> str | None:
     if value is None:
         return None
@@ -137,19 +141,48 @@ def build_log_payload(
     else:
         target_file = log_files[0]
 
-    all_lines = target_file.read_text(encoding="utf-8", errors="ignore").splitlines()
-    all_entries = build_log_entries(all_lines)
-    matched_entries = filter_log_entries(all_entries, time_range, level, module_query, keyword)
-    visible_entries = list(reversed(matched_entries[-limit:]))
+    visible_entry_buffer: deque[dict[str, Any]] = deque(maxlen=limit)
+    total_line_count = 0
+    matched_line_count = 0
+    parsed_line_count = 0
+
+    def consume_chunk(lines: list[str], first_line_number: int) -> None:
+        nonlocal matched_line_count, parsed_line_count
+        entries = build_log_entries(lines)
+        for index, entry in enumerate(entries):
+            entry["line_number"] = first_line_number + index
+        parsed_line_count += sum(1 for entry in entries if entry["parsed"])
+        matched_entries = filter_log_entries(
+            entries,
+            time_range,
+            level,
+            module_query,
+            keyword,
+        )
+        matched_line_count += len(matched_entries)
+        visible_entry_buffer.extend(matched_entries)
+
+    chunk: list[str] = []
+    with target_file.open("r", encoding="utf-8", errors="ignore") as file:
+        for raw_line in file:
+            total_line_count += 1
+            chunk.append(raw_line.rstrip("\r\n"))
+            if len(chunk) >= LOG_READ_CHUNK_LINES:
+                consume_chunk(chunk, total_line_count - len(chunk) + 1)
+                chunk = []
+    if chunk:
+        consume_chunk(chunk, total_line_count - len(chunk) + 1)
+
+    visible_entries = list(reversed(visible_entry_buffer))
     return {
         "files": [path.name for path in log_files],
         "active_file": target_file.name,
         "lines": [entry["raw"] for entry in visible_entries],
         "entries": [{key: value for key, value in entry.items() if key != "_parsed_timestamp"} for entry in visible_entries],
         "line_count": len(visible_entries),
-        "matched_line_count": len(matched_entries),
-        "total_line_count": len(all_lines),
-        "parsed_line_count": sum(1 for entry in all_entries if entry["parsed"]),
+        "matched_line_count": matched_line_count,
+        "total_line_count": total_line_count,
+        "parsed_line_count": parsed_line_count,
         "filters": {
             "time_range": time_range,
             "level": level,

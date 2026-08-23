@@ -6,7 +6,12 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from server.log_reader import build_log_entries, filter_log_entries, parse_log_line
+from server.log_reader import (
+    build_log_entries,
+    build_log_payload,
+    filter_log_entries,
+    parse_log_line,
+)
 from server.upload_paths import (
     read_upload_with_limit,
     resolve_project_relative_dir,
@@ -90,3 +95,25 @@ def test_read_upload_with_limit_reads_only_one_byte_past_limit_and_closes() -> N
     assert len(content) == 5
     assert upload.requested == 5
     assert upload.closed is True
+
+
+def test_build_log_payload_streams_and_keeps_latest_matches(tmp_path, monkeypatch) -> None:
+    log_file = tmp_path / "service.log"
+    lines = [
+        "2026-07-06 12:00:00.123 | INFO     | server:create_app:1 - first",
+        "2026-07-06 12:00:01.123 | ERROR    | server:create_app:2 - second",
+        "2026-07-06 12:00:02.123 | INFO     | server:create_app:3 - third",
+        "2026-07-06 12:00:03.123 | ERROR    | server:create_app:4 - fourth",
+    ]
+    log_file.write_text("\n".join(lines), encoding="utf-8")
+
+    def fail_read_text(*args, **kwargs):
+        raise AssertionError("日志文件不应整文件读取")
+
+    monkeypatch.setattr(Path, "read_text", fail_read_text)
+    payload = build_log_payload(tmp_path, limit=2, level="ERROR")
+    assert payload["total_line_count"] == 4
+    assert payload["matched_line_count"] == 2
+    assert payload["line_count"] == 2
+    assert [entry["line_number"] for entry in payload["entries"]] == [4, 2]
+    assert payload["parsed_line_count"] == 4
