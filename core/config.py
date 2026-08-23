@@ -49,6 +49,19 @@ SYSTEM_SETTING_FIELDS = (
     "api_token",
     "callback_secret",
 )
+RESERVED_CALLBACK_PATHS = frozenset({"/", "/docs", "/health", "/openapi.json", "/plugins", "/redoc"})
+RESERVED_CALLBACK_PATH_PREFIXES = ("/api", "/static")
+
+
+def is_reserved_callback_path(value: str) -> bool:
+    normalized = str(value or "").strip().casefold().rstrip("/") or "/"
+    return (
+        normalized in RESERVED_CALLBACK_PATHS
+        or any(
+            normalized == prefix or normalized.startswith(f"{prefix}/")
+            for prefix in RESERVED_CALLBACK_PATH_PREFIXES
+        )
+    )
 
 
 def _parse_plugins(value: str | list[str] | None) -> list[str]:
@@ -475,11 +488,17 @@ class PluginServiceSettings(BaseModel):
     @field_validator("callback_path")
     @classmethod
     def normalize_callback_path(cls, value: str) -> str:
-        if not value:
+        normalized = str(value or "").strip()
+        if not normalized:
             return "/messages"
-        if not value.startswith("/"):
-            value = f"/{value}"
-        return value.rstrip("/") or "/messages"
+        if not normalized.startswith("/"):
+            normalized = f"/{normalized}"
+        normalized = normalized.rstrip("/") or "/messages"
+        if any(marker in normalized for marker in ("?", "#", "{", "}")):
+            raise ValueError("消息回调路径必须是固定 URL 路径，不能包含查询串、片段或路径参数")
+        if is_reserved_callback_path(normalized):
+            raise ValueError("消息回调路径不能与控制台、API、静态资源或健康检查路由重叠")
+        return normalized
 
     @field_validator("wxrobot_api_base_url")
     @classmethod
