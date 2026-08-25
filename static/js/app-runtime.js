@@ -58,7 +58,7 @@ function refreshOverviewFromRuntimeEvent(actions, payload) {
 
 function refreshSecondaryTabs(actions) {
     const activeTab = actions.getState().activeTab;
-    if (activeTab === "messages" || activeTab === "ai-assistant" || activeTab === "dashboard") {
+    if (activeTab === "messages" || activeTab === "dashboard") {
         return;
     }
     actions.refreshCurrentTab().catch((error) => {

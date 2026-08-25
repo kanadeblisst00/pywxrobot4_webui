@@ -33,6 +33,9 @@ const elements = queryAppElements();
 if (!PANEL_NAMES.includes("messages") || !PANEL_NAMES.includes("dashboard")) {
     throw new Error("PANEL_NAMES should include core tabs");
 }
+if (PANEL_NAMES.includes("ai-assistant")) {
+    throw new Error("PANEL_NAMES should not include the removed AI assistant tab");
+}
 
 await ensureShellFragments(elements, "dashboard");
 if (!isPanelLoaded("dashboard")) {

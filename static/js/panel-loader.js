@@ -7,7 +7,6 @@ const PANEL_LOADERS = {
     messages: () => import("./partials/messages.js"),
     users: () => import("./partials/users.js"),
     features: () => import("./partials/features.js"),
-    "ai-assistant": () => import("./partials/ai-assistant.js"),
     plugins: () => import("./partials/plugins.js"),
     "plugin-logs": () => import("./partials/plugin-logs.js"),
     settings: () => import("./partials/settings.js"),

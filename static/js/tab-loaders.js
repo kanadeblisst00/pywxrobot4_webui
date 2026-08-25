@@ -120,9 +120,6 @@ export function createTabLoaders(getState, deps) {
             case "features":
                 await loadPlugins();
                 break;
-            case "ai-assistant":
-                await deps.loadAiAssistant();
-                break;
             case "plugins":
                 await loadPlugins();
                 break;

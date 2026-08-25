@@ -21,11 +21,6 @@ export const tabMeta = {
         title: "功能插件",
         description: "按需执行功能插件。",
     },
-    "ai-assistant": {
-        label: "智能插件",
-        title: "AI 工具代理",
-        description: "配置 AI 厂商并让模型调用 pywxrobot4 工具完成查询与操作。",
-    },
     plugins: {
         label: "消息插件",
         title: "消息插件",
