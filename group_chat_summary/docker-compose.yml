@@ -1,0 +1,41 @@
+services:
+  llama-cpp:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    command:
+      - --hf-repo
+      - unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+      - --alias
+      - qwen3.5-9b
+      - --host
+      - 0.0.0.0
+      - --port
+      - "18080"
+      - --ctx-size
+      - "32768"
+      - --parallel
+      - "1"
+      - --jinja
+      - --no-mmproj
+    ports:
+      - "18080:18080"
+    volumes:
+      - llama-cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+  summary-api:
+    build: .
+    environment:
+      SUMMARY_HOST: 0.0.0.0
+      SUMMARY_PORT: 28120
+      SUMMARY_DATA_DIR: /app/data
+      LLAMA_CPP_BASE_URL: http://llama-cpp:18080/v1
+    ports:
+      - "28120:28120"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - llama-cpp
+    restart: unless-stopped
+
+volumes:
+  llama-cache:

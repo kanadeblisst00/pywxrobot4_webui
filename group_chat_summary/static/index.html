@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>群聊摘要中枢</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23c7e66c'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='36'%3E群%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/responsive.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">群</div>
+        <div><strong>群聊摘要中枢</strong><span>LOCAL AI CONSOLE</span></div>
+      </div>
+      <nav id="main-nav">
+        <button class="nav-item active" data-view="dashboard"><span>◫</span>工作台</button>
+        <button class="nav-item" data-view="summary"><span>✦</span>摘要试运行</button>
+        <button class="nav-item" data-view="models"><span>◎</span>模型管理</button>
+        <button class="nav-item" data-view="history"><span>◷</span>历史记录</button>
+        <button class="nav-item" data-view="settings"><span>⚙</span>流水线设置</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="service-dot"><i id="health-dot"></i><span id="health-text">正在连接服务</span></div>
+        <small>数据与模型请求均留在本机</small>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><p class="eyebrow" id="page-eyebrow">OVERVIEW</p><h1 id="page-title">工作台</h1></div>
+        <div class="top-actions"><span class="privacy-pill">● 本地模式</span><button class="button ghost" id="refresh-button">刷新</button></div>
+      </header>
+
+      <section class="view active" id="view-dashboard">
+        <div class="hero-panel">
+          <div>
+            <span class="tag">QWEN · MAP REDUCE</span>
+            <h2>让几千条消息，变成<br><em>可追溯的行动信息。</em></h2>
+            <p>分段提取、层级归并、证据回链。模型只负责理解，事实边界由流水线守住。</p>
+            <button class="button primary" data-goto="summary">开始一次摘要 <span>→</span></button>
+          </div>
+          <div class="flow-card">
+            <div class="flow-step"><b>01</b><span>消息清洗<small>忽略通知与无效内容</small></span></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><b>02</b><span>分段抽取<small>话题 · 决策 · 待办</small></span></div>
+            <div class="flow-line"></div>
+            <div class="flow-step"><b>03</b><span>证据归并<small>保留原消息 ID</small></span></div>
+          </div>
+        </div>
+        <div class="metric-grid">
+          <article class="metric-card"><span>摘要任务</span><strong id="metric-total">—</strong><small>累计处理</small></article>
+          <article class="metric-card accent"><span>成功完成</span><strong id="metric-completed">—</strong><small>结构化输出</small></article>
+          <article class="metric-card"><span>正在运行</span><strong id="metric-running">—</strong><small>后台任务</small></article>
+          <article class="metric-card"><span>可用模型</span><strong id="metric-models">—</strong><small>已启用配置</small></article>
+        </div>
+        <div class="dashboard-grid">
+          <article class="panel">
+            <div class="panel-head"><div><span class="section-kicker">ACTIVE MODEL</span><h3>当前默认模型</h3></div><button class="text-button" data-goto="models">管理模型 →</button></div>
+            <div id="active-model-card" class="active-model skeleton">加载中…</div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><span class="section-kicker">RECENT</span><h3>最近任务</h3></div><button class="text-button" data-goto="history">查看全部 →</button></div>
+            <div id="recent-list" class="recent-list"><p class="empty">还没有摘要任务</p></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-summary">
+        <div class="two-column wide-left">
+          <article class="panel form-panel">
+            <div class="panel-head"><div><span class="section-kicker">PLAYGROUND</span><h3>提交群聊记录</h3></div><button class="text-button" id="load-example">载入示例</button></div>
+            <form id="summary-form">
+              <div class="field-row">
+                <label>群聊名称<input id="room-name" value="产品研发群" maxlength="200" required></label>
+                <label>群聊 ID<input id="room-id" placeholder="可选，例如 123@chatroom"></label>
+              </div>
+              <label>本次使用模型<select id="summary-model" required></select></label>
+              <label>补充要求<textarea id="custom-instruction" rows="2" placeholder="可选，例如：重点关注版本延期风险"></textarea></label>
+              <label>
+                <span class="label-line">消息 JSON <small>数组格式，每项至少包含 id、sender_name、content</small></span>
+                <textarea id="messages-json" class="code-input" rows="18" spellcheck="false" placeholder='[{"id":"m1","sender_name":"张三","content":"..."}]' required></textarea>
+              </label>
+              <div class="form-actions"><span id="message-counter">0 条有效消息</span><button type="submit" class="button primary" id="run-summary">开始总结 <span>→</span></button></div>
+            </form>
+          </article>
+          <aside class="panel result-panel">
+            <div class="panel-head"><div><span class="section-kicker">RESULT</span><h3>结构化结果</h3></div><span id="job-status" class="status neutral">等待提交</span></div>
+            <div id="summary-result" class="result-empty"><div class="empty-orbit">✦</div><h4>摘要将在这里出现</h4><p>结论、待办和风险均会附带原始消息 ID。</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-models">
+        <div class="section-toolbar">
+          <div><p>默认使用 llama.cpp 的 GGUF 推理服务；也可以保留 Ollama、vLLM 或其他 OpenAI 兼容服务作为备选。</p></div>
+          <button class="button primary" id="add-model">＋ 添加模型配置</button>
+        </div>
+        <div class="runtime-hint">
+          <div class="model-icon">L</div>
+          <div><b>启动默认 llama.cpp 服务</b><code>.\scripts\start_llama_server.ps1</code></div>
+          <span>默认接口 http://127.0.0.1:18080/v1 · Qwen3.5-9B Q4_K_M</span>
+        </div>
+        <div id="model-grid" class="model-grid"></div>
+      </section>
+
+      <section class="view" id="view-history">
+        <article class="panel table-panel">
+          <div class="panel-head"><div><span class="section-kicker">ARCHIVE</span><h3>摘要历史</h3></div><span class="muted">最多展示最近 200 条</span></div>
+          <div class="table-wrap"><table><thead><tr><th>群聊</th><th>模型</th><th>状态</th><th>创建时间</th><th></th></tr></thead><tbody id="history-body"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="view" id="view-settings">
+        <div class="two-column">
+          <article class="panel form-panel">
+            <div class="panel-head"><div><span class="section-kicker">PIPELINE</span><h3>分段与生成参数</h3></div></div>
+            <form id="settings-form">
+              <label>默认模型<select id="default-model"></select></label>
+              <div class="field-row">
+                <label>每段最大字符数<input id="chunk-max-chars" type="number" min="2000" max="100000" step="500"></label>
+                <label>重叠消息数<input id="chunk-overlap" type="number" min="0" max="20"></label>
+              </div>
+              <div class="field-row">
+                <label>最大输出 Tokens<input id="max-output-tokens" type="number" min="512" max="16000" step="128"></label>
+                <label>Temperature<input id="temperature" type="number" min="0" max="1.5" step="0.1"></label>
+              </div>
+              <label>忽略的消息类型<input id="ignored-types" placeholder="emoji, notice, system"></label>
+              <label>默认总结要求<textarea id="default-instruction" rows="5"></textarea></label>
+              <label class="toggle-line"><input id="keep-raw" type="checkbox"><span>保留任务的原始消息</span><small>关闭后历史记录只保存摘要结果</small></label>
+              <button class="button primary" type="submit">保存流水线设置</button>
+            </form>
+          </article>
+          <aside class="panel info-panel">
+            <span class="section-kicker">HOW IT WORKS</span><h3>为什么不直接塞进一次请求？</h3>
+            <p>长上下文并不等于稳定召回。分段抽取可以让每条消息获得更均匀的注意力，再由归并阶段解决重复和状态变化。</p>
+            <div class="info-rule"><b>建议值</b><span>中文群聊从 8,000–16,000 字符/段开始。显存较小时，优先降低分段大小，而不是降低输出质量。</span></div>
+            <div class="info-rule"><b>隐私</b><span>SQLite 默认位于子项目 data 目录。API Key 不会返回给浏览器，仅显示是否已配置。</span></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="model-dialog">
+    <form id="model-form" method="dialog">
+      <div class="dialog-head"><div><span class="section-kicker">MODEL PROFILE</span><h3 id="model-dialog-title">添加模型配置</h3></div><button type="button" class="icon-button" data-close-dialog>×</button></div>
+      <input type="hidden" id="model-profile-id">
+      <div class="field-row"><label>显示名称<input id="model-name" required></label><label>服务类型<select id="model-provider"><option value="llama.cpp">llama.cpp</option><option value="ollama">Ollama</option><option value="openai-compatible">OpenAI 兼容</option><option value="vllm">vLLM</option></select></label></div>
+      <label>接口 Base URL<input id="model-base-url" value="http://127.0.0.1:11434/v1" required></label>
+      <label>模型名称<input id="model-name-id" placeholder="qwen3.5:9b" required></label>
+      <label>API Key<input id="model-api-key" type="password" placeholder="llama.cpp 默认无需填写；留空则保留原值"></label>
+      <label>说明<textarea id="model-description" rows="3"></textarea></label>
+      <div class="field-row check-row"><label class="toggle-line"><input id="model-enabled" type="checkbox" checked><span>启用</span></label><label class="toggle-line"><input id="model-schema" type="checkbox" checked><span>JSON Schema</span></label></div>
+      <div class="dialog-actions"><button type="button" class="button ghost" data-close-dialog>取消</button><button type="submit" class="button primary">保存配置</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="detail-dialog" class="detail-dialog"><div class="dialog-head"><div><span class="section-kicker">SUMMARY DETAIL</span><h3 id="detail-title">摘要详情</h3></div><button type="button" class="icon-button" data-close-detail>×</button></div><div id="detail-content"></div></dialog>
+  <div id="toast-region"></div>
+  <script type="module" src="/static/app.js"></script>
+</body>
+</html>
