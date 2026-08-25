@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="中文群消息语义监测与风险复核控制台">
+  <title>语义哨兵 · 群消息监测</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-mark">语</span><div><b>语义哨兵</b><small>Semantic Guard</small></div></div>
+    <nav aria-label="主导航">
+      <button class="nav-item active" data-view="overview"><span>⌁</span>监测概览</button>
+      <button class="nav-item" data-view="topics"><span>◎</span>监测主题</button>
+      <button class="nav-item" data-view="playground"><span>⌘</span>消息测试台</button>
+      <button class="nav-item" data-view="events"><span>◌</span>告警与复核</button>
+      <button class="nav-item" data-view="datasets"><span>▤</span>训练数据</button>
+      <button class="nav-item" data-view="training"><span>△</span>训练评测</button>
+      <button class="nav-item" data-view="models"><span>◇</span>模型设置</button>
+    </nav>
+    <div class="sidebar-foot"><i class="status-dot"></i><span>监测服务运行中</span><small>API v0.1</small></div>
+  </aside>
+  <main>
+    <header class="topbar"><div><p class="eyebrow">SEMANTIC MONITORING</p><h1 id="page-title">监测概览</h1></div><div class="top-actions"><label class="token-input">API Token<input id="api-token" type="password" placeholder="未配置可留空"></label><span class="pill">本地优先</span><a href="/docs" target="_blank" class="button ghost">API 文档 ↗</a></div></header>
+    <section class="view active" id="view-overview">
+      <div class="hero-panel">
+        <div><span class="live-label"><i></i>实时语义分析已开启</span><h2>让“换种说法”<br>也逃不过监测。</h2><p>规则命中负责确定性，语义召回发现相似表达，上下文模型理解真实意图。</p></div>
+        <div class="signal-orbit" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div><div class="core">AI</div><span class="node n1">规则</span><span class="node n2">语义</span><span class="node n3">上下文</span></div>
+      </div>
+      <div class="metric-grid" id="metric-grid">
+        <article class="metric-card"><span>今日告警</span><strong id="stat-today">—</strong><small>过去 24 小时</small></article>
+        <article class="metric-card"><span>待人工复核</span><strong id="stat-pending">—</strong><small>建议优先处理</small></article>
+        <article class="metric-card"><span>启用主题</span><strong id="stat-topics">—</strong><small>持续监测中</small></article>
+        <article class="metric-card"><span>反馈误报率</span><strong id="stat-fpr">—</strong><small>基于已标注数据</small></article>
+      </div>
+      <div class="two-col"><article class="panel"><div class="panel-head"><div><p class="eyebrow">PIPELINE</p><h3>检测链路</h3></div><span class="tag success">运行正常</span></div><div class="pipeline"><div><b>01</b><span>文本预处理<small>统一字符 · 消除绕过</small></span></div><i></i><div><b>02</b><span>规则与语义召回<small>高精度 + 高召回</small></span></div><i></i><div><b>03</b><span>上下文复核<small>否定 · 引用 · 反讽</small></span></div></div></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">QUICK START</p><h3>试一条群消息</h3></div></div><form id="quick-form" class="quick-form"><input id="quick-text" aria-label="消息内容" value="这个月工资没下来，谁能先帮我垫一下？"><button class="button primary" type="submit">立即分析</button></form><div id="quick-result" class="mini-result">结果会显示在这里</div></article></div>
+    </section>
+    <section class="view" id="view-topics"><div class="section-actions"><p>用正反例描述要找的“意思”，关键词只承担高确定性命中。</p><button class="button primary" id="add-topic">＋ 新建主题</button></div><div id="topic-grid" class="topic-grid"></div></section>
+    <section class="view" id="view-playground"><div class="playground-layout"><article class="panel test-form"><p class="eyebrow">MESSAGE LAB</p><h2>消息测试台</h2><p>测试不会写入告警记录，适合调整正反例和阈值。</p><form id="analyze-form"><label>群 ID<input name="room_id" value="test-room"></label><label>发送人<input name="sender_name" value="测试成员"></label><label>前文（每行一条）<textarea name="context" rows="4" placeholder="管理员：请大家提高反诈意识"></textarea></label><label>当前消息<textarea name="text" rows="6" required>能不能先支援两千，下周还你</textarea></label><button class="button primary wide" type="submit">开始语义分析</button></form></article><article class="panel result-panel"><p class="eyebrow">ANALYSIS</p><h3>判定结果</h3><div id="analysis-result" class="empty-state"><span>⌁</span><p>输入消息后开始分析</p><small>系统将展示每个命中主题、置信度与判定依据</small></div></article><article class="panel image-lab"><div class="image-lab-head"><div><p class="eyebrow">IMAGE LAB</p><h2>图片审核测试</h2><p>同时执行色情检测、海报 OCR 和二维码存在性检测。二维码内容不会被读取。</p></div><div id="vision-status" class="vision-status">正在检查组件…</div></div><div class="image-upload-grid"><label class="image-drop">选择图片<input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp"><span>PNG / JPEG / WebP / GIF / BMP，最大 20 MB</span></label><button class="button primary" id="analyze-image" type="button">开始图片审核</button></div><div id="image-result" class="image-result empty-image">上传图片后显示三类检测结果</div></article></div></section>
+    <section class="view" id="view-events"><div class="section-actions"><p>高风险或低置信度结果进入人工复核，反馈会成为后续调优数据。</p><button class="button ghost" id="refresh-events">刷新列表</button></div><div class="panel table-wrap"><table><thead><tr><th>时间 / 群聊</th><th>消息</th><th>监测主题</th><th>置信度</th><th>判定依据</th><th>复核</th></tr></thead><tbody id="events-body"></tbody></table></div></section>
+    <section class="view" id="view-datasets">
+      <div class="section-actions"><p>内置公开数据清单、许可信息和本地导入。受限数据不会被系统自动下载。</p><button class="button primary" id="toggle-import">＋ 导入本地数据</button></div>
+      <article class="panel import-box" id="import-box" hidden><div class="import-grid"><label>数据集名称<input id="import-name" value="我的群聊样本"></label><label>唯一标识<input id="import-slug" value="my-wechat-samples"></label><label>文本列<input id="import-text-column" value="text"></label><label>标签列<input id="import-label-column" value="label"></label><label class="file-label">CSV / JSON / JSONL / TXT<input id="import-file" type="file" accept=".csv,.json,.jsonl,.ndjson,.txt"></label><button class="button primary" id="import-dataset">开始导入</button></div></article>
+      <div class="dataset-grid" id="dataset-grid"><div class="empty-state"><p>正在读取数据集目录…</p></div></div>
+    </section>
+    <section class="view" id="view-training">
+      <div class="section-actions"><p>使用内置字符 n-gram 多标签分类器训练；不依赖 scikit-learn，普通 CPU 即可完成。</p><button class="button ghost" id="refresh-training">刷新任务</button></div>
+      <div class="training-layout"><article class="panel"><p class="eyebrow">NEW RUN</p><h2>新建训练任务</h2><div id="training-datasets" class="dataset-checks"></div><div class="train-fields"><label>测试集比例<input id="train-test-ratio" type="number" min="0.1" max="0.5" step="0.05" value="0.2"></label><label>分类阈值<input id="train-threshold" type="number" min="0.1" max="0.95" step="0.01" value="0.5"></label><label>最小词频<input id="train-min-df" type="number" min="1" value="1"></label></div><button class="button primary wide" id="start-training">开始训练</button></article><article class="panel"><div class="panel-head"><div><p class="eyebrow">HISTORY</p><h3>训练记录</h3></div></div><div id="training-runs" class="run-list"><div class="empty-state"><p>暂无训练任务</p></div></div></article></div>
+    </section>
+    <section class="view" id="view-models"><div class="model-intro"><div><p class="eyebrow">MODEL ROUTING</p><h2>按你的资源选择模型</h2><p>先选资源预设，再按需微调文本与图片模型。API 密钥仅保存在本地数据库。</p></div><div class="privacy-badge"><b>⌂</b><span>隐私优先<small>支持完全本地部署</small></span></div></div><div id="model-profiles" class="profile-grid"></div><form id="model-form"><div class="model-columns"><article class="panel"><div class="panel-head"><div><span class="step">1</span><h3>语义召回模型</h3></div><button type="button" class="button ghost probe" data-kind="embedding">测试连接</button></div><div id="embedding-options" class="model-options"></div><div class="advanced-fields" id="embedding-fields"><label>模型名称<input name="embedding_model"></label><label>API 地址<input name="embedding_api_base" placeholder="http://127.0.0.1:11434"></label><label>API Key<input name="embedding_api_key" type="password" autocomplete="new-password"></label></div></article><article class="panel"><div class="panel-head"><div><span class="step">2</span><h3>上下文判定模型</h3></div><button type="button" class="button ghost probe" data-kind="classifier">测试连接</button></div><div id="classifier-options" class="model-options"></div><div class="advanced-fields" id="classifier-fields"><label>模型名称<input name="classifier_model"></label><label>API 地址<input name="classifier_api_base" placeholder="http://127.0.0.1:11434"></label><label>API Key<input name="classifier_api_key" type="password" autocomplete="new-password"></label></div></article></div><article class="panel vision-config"><div class="panel-head"><div><span class="step">3</span><h3>图片审核组件</h3></div><span class="tag success" id="vision-model-status">本地推理</span></div><div class="vision-fields"><label class="toggle-label"><input name="qrcode_enabled" type="checkbox">检测二维码存在性</label><label>OCR 模型<select name="ocr_provider"><option value="rapidocr">RapidOCR ONNX</option><option value="disabled">关闭 OCR</option></select></label><label>色情检测模型<select name="nsfw_provider"><option value="nudenet">NudeNet ONNX</option><option value="opennsfw2">OpenNSFW2</option><option value="disabled">关闭色情检测</option></select></label><label>色情阈值<input name="nsfw_threshold" type="number" min="0.1" max="0.99" step="0.01"></label><label>最大图片像素（MP）<input name="max_image_megapixels" type="number" min="1" max="100" step="1"></label></div><p class="vision-privacy">二维码检测器只返回存在性、数量和格式，不访问或返回二维码承载的文本。</p></article><div class="save-bar"><span id="model-status">修改后需要保存才会生效</span><button class="button primary" type="submit">保存模型设置</button></div></form></section>
+  </main>
+  <dialog id="topic-dialog"><form method="dialog" id="topic-form"><div class="dialog-head"><div><p class="eyebrow">MONITOR TOPIC</p><h2 id="topic-dialog-title">新建监测主题</h2></div><button value="cancel" class="icon-button" aria-label="关闭">×</button></div><input type="hidden" name="id"><div class="form-grid"><label>主题名称<input name="name" required placeholder="例如：疑似借贷请求"></label><label>风险等级<select name="severity"><option value="low">低</option><option value="medium">中</option><option value="high">高</option><option value="critical">严重</option></select></label><label class="full">主题定义<textarea name="description" rows="3" placeholder="说明什么属于命中，什么不属于"></textarea></label><label class="full">关键词（每行一个）<textarea name="keywords" rows="3"></textarea></label><label class="full">正例（每行一条）<textarea name="positive_examples" rows="5" required></textarea></label><label class="full">反例（每行一条）<textarea name="negative_examples" rows="4"></textarea></label><label>告警阈值<input name="semantic_threshold" type="number" min="-1" max="1" step="0.01" value="0.66"></label><label>复核阈值<input name="review_threshold" type="number" min="-1" max="1" step="0.01" value="0.46"></label></div><div class="dialog-actions"><label class="toggle-label"><input type="checkbox" name="context_enabled" checked>启用上下文复核</label><div><button class="button ghost" value="cancel">取消</button><button class="button primary" value="default" id="save-topic">保存主题</button></div></div></form></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
